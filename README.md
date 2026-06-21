@@ -1,18 +1,34 @@
-# Oriz Echo — Audio Tools
+# Oriz Echo — Audio tools
 
-Browser-based audio tools under the **Echo** product brand (audio/sound) of the Oriz family.
+> Browser-based audio tools under the Echo product brand of the Oriz family.
 
-All processing runs locally in your browser via [FFmpeg.wasm](https://ffmpegwasm.netlify.app/) — no uploads, no servers touching your audio.
+**Live at**: <https://audio.oriz.in> · **Status**: scaffold
 
-**Live:** [https://audio.oriz.in](https://audio.oriz.in)
+## What this is
 
-## Stack
+All audio processing runs locally in your browser — no uploads, no servers touching your audio. Trim, convert, extract, normalise, and the rest of the audio toolkit.
 
-- [Astro 6](https://astro.build/) — content + islands
-- [React 19](https://react.dev/) — interactive components
-- [Tailwind CSS v4](https://tailwindcss.com/) — styling
-- [FFmpeg.wasm](https://ffmpegwasm.netlify.app/) — in-browser audio processing
+## Per-feature inventory
+
+| Feature    | Status     |
+| ---------- | ---------- |
+| (none yet) | 📜 planned |
+
+## App-specific env vars
+
+None beyond the family-wide set at `templates/.env.example`.
+
+## Local dev
+
+```bash
+# from the workspace root (c:/D/oriz)
+pnpm -F oriz-echo-audio-tools-app dev
+```
+
+## Knowledge
+
+See [`./knowledge/`](./knowledge/) for app-specific decisions, runbooks, and services. Family rules / decisions / architecture live at the master repo's [`knowledge/`](../../../../knowledge/).
 
 ## License
 
-Source-available. See [LICENSE](./LICENSE).
+Source-available, all rights reserved. See master [`LICENSE`](../../../../LICENSE) — same terms across the family.
