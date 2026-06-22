@@ -1,0 +1,16 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="Disclaimer — Oriz Echo" description="Disclaimer for Oriz Echo.">
+  <article class="prose">
+    <h1>Disclaimer</h1>
+    <p>Oriz Echo is a utility. It is not professional advice (financial, legal, medical, or otherwise). Results may contain errors; verify anything that matters.</p>
+    <p><a href="/">← back to tools</a></p>
+  </article>
+</BaseLayout>
+
+<style>
+  .prose { max-width: 60ch; }
+  .prose h1 { font-family: var(--font-display); font-weight: 600; font-size: 2rem; margin: 0 0 1.5rem; }
+  .prose p { color: var(--ink); line-height: 1.7; margin: 0 0 1rem; }
+</style>

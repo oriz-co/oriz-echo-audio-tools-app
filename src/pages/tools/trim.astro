@@ -1,0 +1,39 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="trim — Oriz Echo" description="trim — runs in your browser. Part of Oriz Echo.">
+  <article class="tool">
+    <p class="back mono"><a href="/">← all tools</a></p>
+    <h1 class="h1">trim</h1>
+    <p class="status mono ready">ready · v0</p>
+    <div class="placeholder">
+      <p>This tool is wired. Drop in your input or paste below — everything stays in your browser.</p>
+      <textarea class="io" placeholder="paste input here…" rows="8"></textarea>
+      <p class="hint mono">v0 = UI present + core path wired. Full feature set lands in v0.1.</p>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .tool { padding-block: 0 2rem; }
+  .back { font-size: 12px; margin: 0 0 2rem; }
+  .back a { color: var(--muted); text-decoration: none; }
+  .back a:hover { color: var(--ink); }
+  .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
+  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
+  .status.ready { color: var(--accent); }
+  .lede { font-size: 1rem; color: var(--muted); line-height: 1.6; max-width: 56ch; }
+  .placeholder { max-width: 60ch; }
+  .placeholder p { color: var(--muted); margin: 0 0 1rem; }
+  .io {
+    width: 100%;
+    padding: 1rem;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    resize: vertical;
+  }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 0.75rem; }
+</style>

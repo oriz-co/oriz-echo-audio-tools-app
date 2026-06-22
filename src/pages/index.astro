@@ -1,0 +1,116 @@
+---
+/*
+ * Oriz Echo — v0. Feature grid. Each feature is wired as a card; the
+ * first one or two work end-to-end, the rest are stubs marked "Coming v0.1".
+ *
+ * Design: wave · spectrum · level — palette + type stack chosen to match the subject.
+ */
+import BaseLayout from '~/layouts/BaseLayout.astro'
+
+const features = [
+    { slug: 'convert', label: 'convert MP3 / WAV / OGG / AAC / FLAC' },
+    { slug: 'trim', label: 'trim' },
+    { slug: 'extract', label: 'extract audio from video' },
+    { slug: 'pitch', label: 'pitch shift' },
+    { slug: 'speed', label: 'speed change' },
+    { slug: 'reverse', label: 'reverse' },
+    { slug: 'fade', label: 'fade in / out' },
+    { slug: 'concat', label: 'concatenate' },
+    { slug: 'bitrate', label: 'bitrate change' },
+    { slug: 'normalize', label: 'volume normalize' },
+    { slug: 'waveform', label: 'waveform view' },
+]
+const totalFeatures = features.length
+---
+<BaseLayout>
+  <article class="home">
+    <header class="hero">
+      <p class="eyebrow smallcaps">wave · spectrum · level</p>
+      <h1 class="h1">Studio gear in the browser. ffmpeg.wasm + wavesurfer.</h1>
+      <p class="lede">Convert MP3 / WAV / OGG / AAC / FLAC, trim, extract, pitch, speed, reverse, fades, concat, normalize.</p>
+      <p class="meta mono">{totalFeatures} tools · 0 bytes uploaded · runs locally · MIT</p>
+    </header>
+
+    <section class="grid" aria-label="Feature index">
+      {features.map((f, i) => (
+        <a href={`/tools/${f.slug}/`} class="card">
+          <span class="num mono">{String(i + 1).padStart(2, '0')}</span>
+          <span class="label">{f.label}</span>
+          <span class="status mono">{i < 2 ? 'ready' : 'v0.1'}</span>
+        </a>
+      ))}
+    </section>
+
+    <section class="manifesto">
+      <p>
+        Oriz Echo runs in your browser. Files you open are loaded into memory,
+        worked on, and saved back — they are never sent to a server. No upload,
+        no account required, no telemetry on your content.
+      </p>
+      <p>
+        Source is on <a href="https://github.com/chirag127">GitHub</a> under MIT.
+      </p>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .home { padding-block: 0 2rem; }
+  .hero { padding-block: 1rem 2rem; }
+  .eyebrow { font-size: 12px; color: var(--muted); margin: 0 0 1rem; }
+  .h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin: 0 0 1rem;
+  }
+  .lede {
+    font-size: clamp(1rem, 2.2vw, 1.1875rem);
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0 0 1rem;
+    max-width: 56ch;
+  }
+  .meta { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin-block: 2rem;
+  }
+  @media (min-width: 540px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 860px) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
+
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.125rem;
+    background: var(--paper);
+    color: var(--ink);
+    text-decoration: none;
+    transition: background 120ms, color 120ms;
+  }
+  .card:hover { background: var(--paper-2); color: var(--accent); }
+  .card .num { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; min-width: 2ch; }
+  .card .label { flex: 1; font-size: 0.9375rem; }
+  .card .status { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .manifesto {
+    padding-block: 1rem;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 60ch;
+    border-top: 1px solid var(--rule);
+    margin-top: 2rem;
+    padding-top: 2rem;
+  }
+  .manifesto p { margin: 0 0 1rem; }
+  .manifesto p:last-child { margin-bottom: 0; }
+</style>

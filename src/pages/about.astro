@@ -1,0 +1,29 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="About — Oriz Echo" description="About Oriz Echo — part of the oriz family.">
+  <article class="prose">
+    <h1>About Oriz Echo</h1>
+    <p class="lede">Studio gear in the browser. ffmpeg.wasm + wavesurfer.</p>
+    <p>Convert MP3 / WAV / OGG / AAC / FLAC, trim, extract, pitch, speed, reverse, fades, concat, normalize.</p>
+    <h2>Why client-side?</h2>
+    <p>
+      Every implement runs in your browser. Inputs are loaded into memory,
+      worked on, and saved back — they are never sent to a server. No upload,
+      no account required, no telemetry on your content.
+    </p>
+    <h2>Open source</h2>
+    <p>
+      Source is on <a href="https://github.com/chirag127">GitHub</a> under MIT.
+      Part of the <a href="https://oriz.in">oriz</a> family.
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .prose { max-width: 64ch; }
+  .prose h1 { font-family: var(--font-display); font-weight: 600; font-size: 2rem; margin: 0 0 0.5rem; }
+  .prose h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.25rem; margin: 2rem 0 0.5rem; }
+  .lede { color: var(--muted); font-size: 1.125rem; margin: 0 0 1.5rem; }
+  .prose p { color: var(--ink); line-height: 1.7; margin: 0 0 1rem; }
+</style>

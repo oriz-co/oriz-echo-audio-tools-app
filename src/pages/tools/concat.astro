@@ -1,0 +1,38 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="concatenate — Oriz Echo" description="concatenate — runs in your browser. Part of Oriz Echo.">
+  <article class="tool">
+    <p class="back mono"><a href="/">← all tools</a></p>
+    <h1 class="h1">concatenate</h1>
+    <p class="status mono">coming · v0.1</p>
+    <p class="lede">
+      This feature is on the v0.1 roadmap. The page exists so we can iterate on
+      the design and copy in parallel; the implementation lands next sprint.
+    </p>
+  </article>
+</BaseLayout>
+
+<style>
+  .tool { padding-block: 0 2rem; }
+  .back { font-size: 12px; margin: 0 0 2rem; }
+  .back a { color: var(--muted); text-decoration: none; }
+  .back a:hover { color: var(--ink); }
+  .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
+  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
+  .status.ready { color: var(--accent); }
+  .lede { font-size: 1rem; color: var(--muted); line-height: 1.6; max-width: 56ch; }
+  .placeholder { max-width: 60ch; }
+  .placeholder p { color: var(--muted); margin: 0 0 1rem; }
+  .io {
+    width: 100%;
+    padding: 1rem;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    resize: vertical;
+  }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 0.75rem; }
+</style>

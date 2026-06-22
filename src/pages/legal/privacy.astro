@@ -1,0 +1,16 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="Privacy — Oriz Echo" description="Privacy for Oriz Echo.">
+  <article class="prose">
+    <h1>Privacy</h1>
+    <p>Oriz Echo runs entirely in your browser. We do not upload, store, or process your files or text on any server. Anonymous usage analytics (page views only) are collected via Cloudflare Web Analytics in a cookieless mode.</p><p>Sign-in (optional, for premium features) is handled by <a href="https://auth.oriz.in">auth.oriz.in</a>; refer to that domain's privacy policy.</p>
+    <p><a href="/">← back to tools</a></p>
+  </article>
+</BaseLayout>
+
+<style>
+  .prose { max-width: 60ch; }
+  .prose h1 { font-family: var(--font-display); font-weight: 600; font-size: 2rem; margin: 0 0 1.5rem; }
+  .prose p { color: var(--ink); line-height: 1.7; margin: 0 0 1rem; }
+</style>

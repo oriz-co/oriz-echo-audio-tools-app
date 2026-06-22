@@ -1,0 +1,49 @@
+---
+import '~/styles/global.css'
+
+interface Props {
+  title?: string
+  description?: string
+}
+
+const { title = 'Oriz Echo — Studio gear in the browser. ffmpeg.wasm + wavesurfer.', description = 'Convert MP3 / WAV / OGG / AAC / FLAC, trim, extract, pitch, speed, reverse, fades, concat, normalize.' } = Astro.props
+const canonical = new URL(Astro.url.pathname, 'https://audio.oriz.in').toString()
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <header class="site">
+      <a class="wordmark" href="/">Echo</a>
+      <nav>
+        <a href="/">tools</a>
+        <a href="/about/">about</a>
+        <a href="/pricing/">pricing</a>
+        <a href="https://auth.oriz.in/sign-in">sign in</a>
+      </nav>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="site">
+      <span>Oriz Echo · part of the <a href="https://oriz.in">oriz</a> family · runs in your browser</span>
+      <span>
+        <a href="/about/">about</a> · <a href="/contact/">contact</a> · <a href="/legal/privacy/">privacy</a> · <a href="/legal/terms/">terms</a> · <a href="/legal/disclaimer/">disclaimer</a>
+      </span>
+    </footer>
+  </body>
+</html>
