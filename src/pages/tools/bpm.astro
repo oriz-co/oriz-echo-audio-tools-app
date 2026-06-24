@@ -1,0 +1,155 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="BPM Detector — Oriz Echo" description="Drop an audio file to estimate its tempo (BPM) using the Web Audio API.">
+  <article class="tool">
+    <p class="back mono"><a href="/">← all tools</a></p>
+    <h1 class="h1">BPM Detector</h1>
+    <p class="status mono ready">ready · Web Audio API</p>
+
+    <div id="drop-zone" class="drop-zone">
+      <p>Drag &amp; drop an audio file here</p>
+      <p class="hint mono">or <label class="file-label"><input type="file" id="file-input" accept="audio/*" /> click to browse</label></p>
+    </div>
+
+    <div id="result" class="result hidden">
+      <p class="bpm-value mono" id="bpm-display">-- BPM</p>
+      <p class="bpm-label" id="bpm-label"></p>
+    </div>
+    <p id="status-msg" class="status-msg mono"></p>
+  </article>
+</BaseLayout>
+
+<style>
+  .tool { padding-block: 0 2rem; }
+  .back { font-size: 12px; margin: 0 0 2rem; }
+  .back a { color: var(--muted); text-decoration: none; }
+  .back a:hover { color: var(--ink); }
+  .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
+  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
+  .status.ready { color: var(--accent); }
+
+  .drop-zone {
+    width: 100%;
+    min-height: 140px;
+    border: 2px dashed var(--rule);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    cursor: pointer;
+    transition: border-color 150ms, background 150ms;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    text-align: center;
+  }
+  .drop-zone.drag-over { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 6%, var(--paper)); }
+  .drop-zone p { margin: 0; }
+  .hint { font-size: 12px; }
+  .file-label { color: var(--accent); cursor: pointer; }
+  .file-label input { display: none; }
+
+  .result { margin-top: 2rem; text-align: center; padding: 2rem; background: var(--paper-2); border: 1px solid var(--rule); border-radius: 6px; }
+  .result.hidden { display: none; }
+  .bpm-value { font-size: clamp(3rem, 10vw, 5rem); color: var(--accent); margin: 0; letter-spacing: -0.02em; }
+  .bpm-label { color: var(--muted); font-size: 0.9375rem; margin: 0.5rem 0 0; }
+  .status-msg { font-size: 12px; color: var(--muted); margin: 1rem 0 0; min-height: 1.4em; font-family: var(--font-mono); }
+</style>
+
+<script>
+  const dropZone = document.getElementById('drop-zone') as HTMLDivElement
+  const fileInput = document.getElementById('file-input') as HTMLInputElement
+  const resultEl = document.getElementById('result') as HTMLDivElement
+  const bpmDisplay = document.getElementById('bpm-display') as HTMLParagraphElement
+  const bpmLabel = document.getElementById('bpm-label') as HTMLParagraphElement
+  const statusEl = document.getElementById('status-msg') as HTMLParagraphElement
+
+  function setStatus(msg: string) { statusEl.textContent = msg }
+
+  // Simple onset-based BPM detection using energy peaks
+  function detectBPM(audioBuffer: AudioBuffer): number {
+    const data = audioBuffer.getChannelData(0)
+    const sampleRate = audioBuffer.sampleRate
+    const windowSize = Math.floor(sampleRate * 0.02) // 20ms windows
+    const energies: number[] = []
+
+    for (let i = 0; i < data.length - windowSize; i += windowSize) {
+      let e = 0
+      for (let j = 0; j < windowSize; j++) e += data[i + j] ** 2
+      energies.push(e / windowSize)
+    }
+
+    // Moving average for local threshold
+    const avgWindow = 43
+    const peaks: number[] = []
+    for (let i = avgWindow; i < energies.length - avgWindow; i++) {
+      let avg = 0
+      for (let k = -avgWindow; k <= avgWindow; k++) avg += energies[i + k]
+      avg /= (2 * avgWindow + 1)
+      if (energies[i] > avg * 1.5 && energies[i] > (energies[i - 1] ?? 0) && energies[i] > (energies[i + 1] ?? 0)) {
+        peaks.push(i)
+      }
+    }
+
+    if (peaks.length < 4) return 0
+
+    // Compute inter-onset intervals
+    const intervals: number[] = []
+    for (let i = 1; i < Math.min(peaks.length, 200); i++) {
+      const ioi = (peaks[i] - peaks[i - 1]) * windowSize / sampleRate
+      if (ioi > 0.25 && ioi < 2.0) intervals.push(ioi)
+    }
+    if (intervals.length === 0) return 0
+
+    intervals.sort((a, b) => a - b)
+    const median = intervals[Math.floor(intervals.length / 2)]
+    let bpm = 60 / median
+    // Normalize to 60-200 range
+    while (bpm < 60) bpm *= 2
+    while (bpm > 200) bpm /= 2
+    return Math.round(bpm)
+  }
+
+  function bpmDescription(bpm: number): string {
+    if (bpm < 70) return 'Largo — very slow'
+    if (bpm < 90) return 'Andante — walking pace'
+    if (bpm < 110) return 'Moderato — moderate'
+    if (bpm < 130) return 'Allegro — fast'
+    if (bpm < 160) return 'Vivace — lively'
+    return 'Presto — very fast'
+  }
+
+  async function processFile(file: File) {
+    if (!file.type.startsWith('audio/')) { setStatus('Please drop an audio file.'); return }
+    setStatus(`Analyzing "${file.name}"…`)
+    resultEl.classList.add('hidden')
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const ctx = new AudioContext()
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+      await ctx.close()
+      const bpm = detectBPM(audioBuffer)
+      if (bpm === 0) {
+        setStatus('Could not detect BPM — try a rhythmic track.')
+      } else {
+        bpmDisplay.textContent = `${bpm} BPM`
+        bpmLabel.textContent = bpmDescription(bpm)
+        resultEl.classList.remove('hidden')
+        setStatus(`Analyzed ${audioBuffer.duration.toFixed(1)}s of audio`)
+      }
+    } catch {
+      setStatus('Failed to decode audio file.')
+    }
+  }
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over') })
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault(); dropZone.classList.remove('drag-over')
+    const file = e.dataTransfer?.files[0]; if (file) processFile(file)
+  })
+  fileInput.addEventListener('change', () => { const f = fileInput.files?.[0]; if (f) processFile(f) })
+</script>

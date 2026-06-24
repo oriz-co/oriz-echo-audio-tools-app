@@ -1,0 +1,241 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="Metronome — Oriz Echo" description="Browser metronome with AudioContext click sound and visual flash. No plugins needed.">
+  <article class="tool">
+    <p class="back mono"><a href="/">← all tools</a></p>
+    <h1 class="h1">Metronome</h1>
+    <p class="status mono ready">ready · Web Audio API</p>
+
+    <div class="metro-panel">
+      <div class="beat-flash" id="beat-flash" aria-live="polite" aria-label="Beat indicator"></div>
+      <p class="beat-count mono" id="beat-count">1</p>
+    </div>
+
+    <div class="controls">
+      <div class="bpm-control">
+        <label class="bpm-label" for="bpm-input">BPM</label>
+        <input type="number" id="bpm-input" class="bpm-input mono" min="20" max="300" value="120" />
+        <input type="range" id="bpm-slider" min="20" max="300" value="120" class="bpm-slider" />
+      </div>
+
+      <div class="time-sig">
+        <label class="bpm-label">Beats per bar</label>
+        <div class="btn-group">
+          {[2, 3, 4, 6].map(n => (
+            <button class={`sig-btn ${n === 4 ? 'active' : ''}`} data-beats={n}>{n}</button>
+          ))}
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="start-btn" class="btn-primary">Start</button>
+        <button id="stop-btn" class="btn-secondary hidden">Stop</button>
+        <button id="tap-btn" class="btn-tap">Tap tempo</button>
+      </div>
+    </div>
+    <p id="status-msg" class="status-msg mono"></p>
+  </article>
+</BaseLayout>
+
+<style>
+  .tool { padding-block: 0 2rem; }
+  .back { font-size: 12px; margin: 0 0 2rem; }
+  .back a { color: var(--muted); text-decoration: none; }
+  .back a:hover { color: var(--ink); }
+  .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
+  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
+  .status.ready { color: var(--accent); }
+
+  .metro-panel {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: var(--paper-2);
+    border: 2px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2rem;
+    position: relative;
+    transition: background 80ms, border-color 80ms;
+  }
+  .metro-panel.flash { background: var(--accent); border-color: var(--accent); }
+  .metro-panel.accent-flash { background: color-mix(in oklab, var(--accent) 30%, var(--paper-2)); }
+  .beat-flash { position: absolute; inset: 0; border-radius: 50%; }
+  .beat-count { font-size: 3.5rem; color: var(--ink); margin: 0; line-height: 1; z-index: 1; }
+
+  .controls { max-width: 360px; margin: 0 auto; }
+
+  .bpm-control { margin-bottom: 1.5rem; }
+  .bpm-label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 0.5rem; letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--font-mono); }
+  .bpm-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-size: 1.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+  .bpm-input:focus { outline: 1px solid var(--accent); }
+  .bpm-slider { width: 100%; accent-color: var(--accent); }
+
+  .time-sig { margin-bottom: 1.5rem; }
+  .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .sig-btn {
+    padding: 0.4rem 1rem;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-family: var(--font-display);
+  }
+  .sig-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .action-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .btn-primary {
+    padding: 0.6rem 1.5rem;
+    background: var(--accent);
+    color: var(--paper);
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-display);
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    padding: 0.6rem 1.5rem;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-display);
+  }
+  .btn-tap {
+    padding: 0.6rem 1.5rem;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    font-family: var(--font-display);
+  }
+  .btn-tap:hover { color: var(--ink); border-color: var(--muted); }
+  .hidden { display: none; }
+  .status-msg { font-size: 12px; color: var(--muted); margin: 1.5rem 0 0; min-height: 1.4em; text-align: center; font-family: var(--font-mono); }
+</style>
+
+<script>
+  const panel = document.querySelector('.metro-panel') as HTMLDivElement
+  const beatCount = document.getElementById('beat-count') as HTMLParagraphElement
+  const bpmInput = document.getElementById('bpm-input') as HTMLInputElement
+  const bpmSlider = document.getElementById('bpm-slider') as HTMLInputElement
+  const startBtn = document.getElementById('start-btn') as HTMLButtonElement
+  const stopBtn = document.getElementById('stop-btn') as HTMLButtonElement
+  const tapBtn = document.getElementById('tap-btn') as HTMLButtonElement
+  const statusEl = document.getElementById('status-msg') as HTMLParagraphElement
+  const sigBtns = document.querySelectorAll('.sig-btn') as NodeListOf<HTMLButtonElement>
+
+  let audioCtx: AudioContext | null = null
+  let timerId: ReturnType<typeof setTimeout> | null = null
+  let beat = 0
+  let beatsPerBar = 4
+  let isRunning = false
+
+  function getBPM() { return Math.max(20, Math.min(300, parseInt(bpmInput.value) || 120)) }
+  function getInterval() { return (60 / getBPM()) * 1000 }
+
+  function clickSound(isAccent: boolean) {
+    if (!audioCtx) return
+    const osc = audioCtx.createOscillator()
+    const gain = audioCtx.createGain()
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.frequency.value = isAccent ? 1000 : 800
+    gain.gain.setValueAtTime(0.8, audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06)
+    osc.start(audioCtx.currentTime)
+    osc.stop(audioCtx.currentTime + 0.06)
+  }
+
+  function tick() {
+    beat = (beat % beatsPerBar) + 1
+    const isAccent = beat === 1
+    beatCount.textContent = String(beat)
+    panel.classList.remove('flash', 'accent-flash')
+    panel.classList.add(isAccent ? 'flash' : 'accent-flash')
+    requestAnimationFrame(() => setTimeout(() => panel.classList.remove('flash', 'accent-flash'), 100))
+    clickSound(isAccent)
+    if (isRunning) timerId = setTimeout(tick, getInterval())
+  }
+
+  function start() {
+    if (isRunning) return
+    audioCtx = new AudioContext()
+    isRunning = true
+    beat = 0
+    startBtn.classList.add('hidden')
+    stopBtn.classList.remove('hidden')
+    statusEl.textContent = `${getBPM()} BPM · ${beatsPerBar}/4`
+    tick()
+  }
+
+  function stop() {
+    isRunning = false
+    if (timerId) clearTimeout(timerId)
+    audioCtx?.close()
+    audioCtx = null
+    startBtn.classList.remove('hidden')
+    stopBtn.classList.add('hidden')
+    beatCount.textContent = '1'
+    statusEl.textContent = 'Stopped.'
+  }
+
+  bpmInput.addEventListener('input', () => {
+    bpmSlider.value = bpmInput.value
+    if (isRunning) statusEl.textContent = `${getBPM()} BPM · ${beatsPerBar}/4`
+  })
+  bpmSlider.addEventListener('input', () => {
+    bpmInput.value = bpmSlider.value
+    if (isRunning) statusEl.textContent = `${getBPM()} BPM · ${beatsPerBar}/4`
+  })
+  startBtn.addEventListener('click', start)
+  stopBtn.addEventListener('click', stop)
+
+  sigBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sigBtns.forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      beatsPerBar = parseInt(btn.dataset.beats ?? '4')
+      beat = 0
+      if (isRunning) statusEl.textContent = `${getBPM()} BPM · ${beatsPerBar}/4`
+    })
+  })
+
+  // Tap tempo
+  let tapTimes: number[] = []
+  tapBtn.addEventListener('click', () => {
+    const now = Date.now()
+    tapTimes = tapTimes.filter(t => now - t < 3000)
+    tapTimes.push(now)
+    if (tapTimes.length >= 2) {
+      const intervals = tapTimes.slice(1).map((t, i) => t - tapTimes[i])
+      const avg = intervals.reduce((a, b) => a + b, 0) / intervals.length
+      const bpm = Math.round(60000 / avg)
+      bpmInput.value = String(Math.max(20, Math.min(300, bpm)))
+      bpmSlider.value = bpmInput.value
+    }
+  })
+</script>

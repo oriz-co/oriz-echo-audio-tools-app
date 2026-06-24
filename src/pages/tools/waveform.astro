@@ -1,15 +1,20 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro'
 ---
-<BaseLayout title="waveform view — Oriz Echo" description="waveform view — runs in your browser. Part of Oriz Echo.">
+<BaseLayout title="Waveform Visualizer — Oriz Echo" description="Drag-drop an audio file to visualize its waveform. Runs entirely in your browser using the Web Audio API.">
   <article class="tool">
     <p class="back mono"><a href="/">← all tools</a></p>
-    <h1 class="h1">waveform view</h1>
-    <p class="status mono">coming · v0.1</p>
-    <p class="lede">
-      This feature is on the v0.1 roadmap. The page exists so we can iterate on
-      the design and copy in parallel; the implementation lands next sprint.
-    </p>
+    <h1 class="h1">Waveform Visualizer</h1>
+    <p class="status mono ready">ready · Web Audio API</p>
+
+    <div id="drop-zone" class="drop-zone" aria-label="Drop audio file here">
+      <p>Drag &amp; drop an audio file here</p>
+      <p class="hint mono">or <label class="file-label"><input type="file" id="file-input" accept="audio/*" /> click to browse</label></p>
+    </div>
+
+    <canvas id="waveform-canvas" class="waveform-canvas" aria-label="Audio waveform"></canvas>
+    <p id="file-name" class="file-name mono"></p>
+    <p id="status-msg" class="status-msg mono"></p>
   </article>
 </BaseLayout>
 
@@ -21,18 +26,111 @@ import BaseLayout from '~/layouts/BaseLayout.astro'
   .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
   .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
   .status.ready { color: var(--accent); }
-  .lede { font-size: 1rem; color: var(--muted); line-height: 1.6; max-width: 56ch; }
-  .placeholder { max-width: 60ch; }
-  .placeholder p { color: var(--muted); margin: 0 0 1rem; }
-  .io {
+
+  .drop-zone {
     width: 100%;
-    padding: 1rem;
+    min-height: 140px;
+    border: 2px dashed var(--rule);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem;
+    cursor: pointer;
+    transition: border-color 150ms, background 150ms;
+    color: var(--muted);
+    font-size: 0.9375rem;
+    text-align: center;
+  }
+  .drop-zone.drag-over { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 6%, var(--paper)); }
+  .drop-zone p { margin: 0; }
+  .hint { font-size: 12px; }
+  .file-label { color: var(--accent); cursor: pointer; }
+  .file-label input { display: none; }
+
+  .waveform-canvas {
+    display: none;
+    width: 100%;
+    height: 160px;
     background: var(--paper-2);
     border: 1px solid var(--rule);
-    color: var(--ink);
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    resize: vertical;
+    border-radius: 4px;
+    margin-top: 1.5rem;
   }
-  .hint { font-size: 11px; color: var(--muted); margin-top: 0.75rem; }
+  .file-name { font-size: 11px; color: var(--muted); margin: 0.5rem 0 0; }
+  .status-msg { font-size: 12px; color: var(--accent); margin: 0.5rem 0 0; min-height: 1.4em; }
 </style>
+
+<script>
+  const dropZone = document.getElementById('drop-zone') as HTMLDivElement
+  const fileInput = document.getElementById('file-input') as HTMLInputElement
+  const canvas = document.getElementById('waveform-canvas') as HTMLCanvasElement
+  const fileNameEl = document.getElementById('file-name') as HTMLParagraphElement
+  const statusEl = document.getElementById('status-msg') as HTMLParagraphElement
+
+  function setStatus(msg: string) { statusEl.textContent = msg }
+
+  async function processFile(file: File) {
+    if (!file.type.startsWith('audio/')) { setStatus('Please drop an audio file.'); return }
+    fileNameEl.textContent = file.name
+    setStatus('Decoding audio…')
+    canvas.style.display = 'none'
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const ctx = new AudioContext()
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+      await ctx.close()
+      drawWaveform(audioBuffer)
+      setStatus(`Duration: ${audioBuffer.duration.toFixed(2)}s · Channels: ${audioBuffer.numberOfChannels} · Sample rate: ${audioBuffer.sampleRate} Hz`)
+    } catch (e) {
+      setStatus('Failed to decode audio file.')
+    }
+  }
+
+  function drawWaveform(audioBuffer: AudioBuffer) {
+    const data = audioBuffer.getChannelData(0)
+    const dpr = window.devicePixelRatio || 1
+    const w = canvas.offsetWidth || 600
+    const h = 160
+    canvas.width = w * dpr
+    canvas.height = h * dpr
+    canvas.style.display = 'block'
+    const ctx2d = canvas.getContext('2d')!
+    ctx2d.scale(dpr, dpr)
+    ctx2d.clearRect(0, 0, w, h)
+    ctx2d.fillStyle = '#1c1917'
+    ctx2d.fillRect(0, 0, w, h)
+
+    const step = Math.ceil(data.length / w)
+    const mid = h / 2
+    ctx2d.strokeStyle = '#ec4899'
+    ctx2d.lineWidth = 1
+    ctx2d.beginPath()
+    for (let x = 0; x < w; x++) {
+      let min = 1, max = -1
+      for (let s = 0; s < step; s++) {
+        const v = data[x * step + s] ?? 0
+        if (v < min) min = v
+        if (v > max) max = v
+      }
+      ctx2d.moveTo(x, mid + min * mid)
+      ctx2d.lineTo(x, mid + max * mid)
+    }
+    ctx2d.stroke()
+  }
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over') })
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault()
+    dropZone.classList.remove('drag-over')
+    const file = e.dataTransfer?.files[0]
+    if (file) processFile(file)
+  })
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0]
+    if (file) processFile(file)
+  })
+</script>

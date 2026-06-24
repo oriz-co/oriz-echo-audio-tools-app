@@ -1,17 +1,91 @@
 ---
 import BaseLayout from '~/layouts/BaseLayout.astro'
 ---
-<BaseLayout title="bitrate change — Oriz Echo" description="bitrate change — runs in your browser. Part of Oriz Echo.">
+<BaseLayout title="Bitrate change — Oriz Echo" description="Re-sample audio to a target sample rate and/or downmix channels. Outputs 16-bit PCM WAV.">
   <article class="tool">
     <p class="back mono"><a href="/">← all tools</a></p>
-    <h1 class="h1">bitrate change</h1>
-    <p class="status mono">coming · v0.1</p>
+    <h1 class="h1">Bitrate change</h1>
+    <p class="status mono ready">ready · Web Audio API</p>
     <p class="lede">
-      This feature is on the v0.1 roadmap. The page exists so we can iterate on
-      the design and copy in parallel; the implementation lands next sprint.
+      Browsers can't encode MP3 natively, so true MP3 bitrate transcoding lives elsewhere.
+      What this tool does: change <em>sample rate</em> (Hz), force mono/stereo, and re-encode as 16-bit PCM WAV.
+      Source PCM size scales linearly with sample rate × channels × bit-depth.
     </p>
+
+    <div id="drop" class="drop">
+      <p>Drop an audio file</p>
+      <p class="hint mono">or <label class="file-label"><input type="file" id="file" accept="audio/*" /> click to browse</label></p>
+    </div>
+
+    <div class="grid">
+      <label>Sample rate (Hz)<select id="sr">
+        <option value="8000">8 000 (telephone)</option>
+        <option value="16000">16 000 (voice)</option>
+        <option value="22050">22 050</option>
+        <option value="32000">32 000</option>
+        <option value="44100" selected>44 100 (CD)</option>
+        <option value="48000">48 000 (broadcast)</option>
+        <option value="96000">96 000 (studio)</option>
+      </select></label>
+      <label>Channels<select id="ch">
+        <option value="0" selected>Keep original</option>
+        <option value="1">Mono</option>
+        <option value="2">Stereo</option>
+      </select></label>
+    </div>
+
+    <div class="row">
+      <button id="go" class="btn" disabled>Re-encode &rarr; WAV</button>
+      <span id="status" class="status-msg mono"></span>
+    </div>
+    <p id="err" class="err mono"></p>
   </article>
 </BaseLayout>
+
+<script>
+  import { decodeFile, encodeWav, downloadBlob, fmtTime } from '~/scripts/audio-utils'
+  const drop = document.getElementById('drop')!
+  const file = document.getElementById('file') as HTMLInputElement
+  const go = document.getElementById('go') as HTMLButtonElement
+  const srSel = document.getElementById('sr') as HTMLSelectElement
+  const chSel = document.getElementById('ch') as HTMLSelectElement
+  const status = document.getElementById('status')!
+  const err = document.getElementById('err')!
+  let f: File | null = null
+  let decoded: AudioBuffer | null = null
+  async function loadFile(x: File) {
+    f = x; err.textContent = ''; status.textContent = `decoding ${x.name}…`
+    try {
+      decoded = await decodeFile(x); go.disabled = false
+      status.textContent = `${x.name} · ${decoded.sampleRate} Hz · ${decoded.numberOfChannels}ch · ${fmtTime(decoded.duration)}`
+    } catch (e: any) { err.textContent = `decode failed: ${e?.message || e}` }
+  }
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('drag-over') })
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'))
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault(); drop.classList.remove('drag-over')
+    const x = (e as DragEvent).dataTransfer?.files?.[0]; if (x) loadFile(x)
+  })
+  file.addEventListener('change', () => { if (file.files?.[0]) loadFile(file.files[0]) })
+  go.addEventListener('click', async () => {
+    if (!decoded || !f) return
+    err.textContent = ''
+    const targetSR = parseInt(srSel.value, 10)
+    const chOpt = parseInt(chSel.value, 10)
+    const targetCh = chOpt === 0 ? decoded.numberOfChannels : chOpt
+    const len = Math.ceil(decoded.duration * targetSR)
+    const Ctor: any = (window as any).OfflineAudioContext || (window as any).webkitOfflineAudioContext
+    const off = new Ctor(targetCh, Math.max(1, len), targetSR)
+    const s = off.createBufferSource(); s.buffer = decoded; s.connect(off.destination); s.start(0)
+    status.textContent = 'rendering…'
+    try {
+      const out: AudioBuffer = await off.startRendering()
+      const blob = encodeWav(out)
+      downloadBlob(blob, f.name.replace(/\.[^.]+$/, '') + `.${targetSR}Hz.${targetCh}ch.wav`)
+      status.textContent = `done · ${(blob.size / 1024 / 1024).toFixed(2)} MB`
+    } catch (e: any) { err.textContent = `render failed: ${e?.message || e}`; status.textContent = '' }
+  })
+</script>
 
 <style>
   .tool { padding-block: 0 2rem; }
@@ -19,20 +93,21 @@ import BaseLayout from '~/layouts/BaseLayout.astro'
   .back a { color: var(--muted); text-decoration: none; }
   .back a:hover { color: var(--ink); }
   .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
-  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
+  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 1rem; }
   .status.ready { color: var(--accent); }
-  .lede { font-size: 1rem; color: var(--muted); line-height: 1.6; max-width: 56ch; }
-  .placeholder { max-width: 60ch; }
-  .placeholder p { color: var(--muted); margin: 0 0 1rem; }
-  .io {
-    width: 100%;
-    padding: 1rem;
-    background: var(--paper-2);
-    border: 1px solid var(--rule);
-    color: var(--ink);
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    resize: vertical;
-  }
-  .hint { font-size: 11px; color: var(--muted); margin-top: 0.75rem; }
+  .lede { font-size: 1rem; color: var(--muted); line-height: 1.6; max-width: 56ch; margin: 0 0 2rem; }
+  .drop { width: 100%; min-height: 140px; border: 2px dashed var(--rule); border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem; color: var(--muted); text-align: center; }
+  .drop.drag-over { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 6%, var(--paper)); }
+  .drop p { margin: 0; }
+  .hint { font-size: 12px; }
+  .file-label { color: var(--accent); cursor: pointer; }
+  .file-label input { display: none; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem; max-width: 480px; }
+  .grid label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .grid select { padding: 0.5rem 0.7rem; background: var(--paper-2); border: 1px solid var(--rule); color: var(--ink); font-family: var(--font-mono); }
+  .row { display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .btn { background: var(--accent); color: var(--paper); border: none; padding: 0.6rem 1.2rem; font-family: var(--font-mono); font-size: 0.875rem; cursor: pointer; border-radius: 4px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .status-msg { font-size: 12px; color: var(--muted); }
+  .err { color: #c1440e; font-size: 12px; margin-top: 0.75rem; min-height: 1.2em; }
 </style>

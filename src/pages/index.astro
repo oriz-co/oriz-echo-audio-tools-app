@@ -1,54 +1,55 @@
 ---
 /*
- * Oriz Echo — v0. Feature grid. Each feature is wired as a card; the
- * first one or two work end-to-end, the rest are stubs marked "Coming v0.1".
- *
- * Design: wave · spectrum · level — palette + type stack chosen to match the subject.
+ * Oriz Echo — audio tools home.
+ * 8 Web Audio API tools, all client-side, no ffmpeg.
  */
 import BaseLayout from '~/layouts/BaseLayout.astro'
 
 const features = [
-    { slug: 'convert', label: "convert MP3 / WAV / OGG / AAC / FLAC" },
-    { slug: 'trim', label: "trim" },
-    { slug: 'extract', label: "extract audio from video" },
-    { slug: 'pitch', label: "pitch shift" },
-    { slug: 'speed', label: "speed change" },
-    { slug: 'reverse', label: "reverse" },
-    { slug: 'fade', label: "fade in / out" },
-    { slug: 'concat', label: "concatenate" },
-    { slug: 'bitrate', label: "bitrate change" },
-    { slug: 'normalize', label: "volume normalize" },
-    { slug: 'waveform', label: "waveform view" },
+    { slug: 'waveform',  label: 'Waveform visualizer',      desc: 'Drag-drop audio → canvas waveform',       ready: true },
+    { slug: 'bpm',       label: 'BPM detector',             desc: 'Detect tempo of any audio file',          ready: true },
+    { slug: 'tuner',     label: 'Chromatic tuner',          desc: 'Mic input → nearest note + cents',        ready: true },
+    { slug: 'metronome', label: 'Metronome',                 desc: 'BPM input → click + visual flash',        ready: true },
+    { slug: 'spectrum',  label: 'Frequency spectrum',       desc: 'Real-time FFT visualizer',                ready: true },
+    { slug: 'recorder',  label: 'Audio recorder',           desc: 'Mic → record → download WAV/WebM',        ready: true },
+    { slug: 'noise',     label: 'Noise generator',          desc: 'White / brown / pink noise via AudioContext', ready: true },
+    { slug: 'trimmer',   label: 'Audio trimmer',            desc: 'Set start/end on waveform → download',    ready: true },
 ]
-const totalFeatures = features.length
 ---
 <BaseLayout>
   <article class="home">
     <header class="hero">
       <p class="eyebrow smallcaps">wave · spectrum · level</p>
-      <h1 class="h1">Studio gear in the browser. ffmpeg.wasm + wavesurfer.</h1>
-      <p class="lede">Convert MP3 / WAV / OGG / AAC / FLAC, trim, extract, pitch, speed, reverse, fades, concat, normalize.</p>
-      <p class="meta mono">{totalFeatures} tools · 0 bytes uploaded · runs locally · MIT</p>
+      <h1 class="h1">Studio-grade audio tools. Pure browser.</h1>
+      <p class="lede">Waveform visualizer, BPM detector, tuner, metronome, spectrum analyzer, recorder, noise generator, and trimmer — all powered by the Web Audio API. No uploads, no servers.</p>
+      <p class="meta mono">{features.length} tools · 0 bytes uploaded · runs locally</p>
+      <div class="cta-row">
+        <a href="https://account.oriz.in/sign-in?return=https://audio.oriz.in/" class="btn-primary">Sign in</a>
+        <a href="https://oriz.in/pricing?app=echo-audio&return=https://audio.oriz.in/" class="btn-secondary">Upgrade to Pro</a>
+      </div>
     </header>
 
-    <section class="grid" aria-label="Feature index">
+    <section class="grid" aria-label="Tool index">
       {features.map((f, i) => (
         <a href={`/tools/${f.slug}/`} class="card">
           <span class="num mono">{String(i + 1).padStart(2, '0')}</span>
-          <span class="label">{f.label}</span>
-          <span class="status mono">{i < 2 ? 'ready' : 'v0.1'}</span>
+          <div class="card-body">
+            <span class="label">{f.label}</span>
+            <span class="desc">{f.desc}</span>
+          </div>
+          <span class={`status mono ${f.ready ? 'ready' : ''}`}>{f.ready ? 'ready' : 'soon'}</span>
         </a>
       ))}
     </section>
 
     <section class="manifesto">
       <p>
-        Oriz Echo runs in your browser. Files you open are loaded into memory,
-        worked on, and saved back — they are never sent to a server. No upload,
-        no account required, no telemetry on your content.
+        Oriz Echo runs entirely in your browser using the Web Audio API.
+        Files you open are decoded into memory, processed, and saved back —
+        nothing is ever sent to a server. No account required for free tools.
       </p>
       <p>
-        Source is on <a href="https://github.com/chirag127">GitHub</a> under MIT.
+        Source is on <a href="https://github.com/chirag127">GitHub</a>.
       </p>
     </section>
   </article>
@@ -73,7 +74,32 @@ const totalFeatures = features.length
     margin: 0 0 1rem;
     max-width: 56ch;
   }
-  .meta { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+  .meta { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; margin: 0 0 1.5rem; }
+
+  .cta-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.25rem; }
+  .btn-primary {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background: var(--accent);
+    color: var(--paper);
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .btn-secondary:hover { background: color-mix(in oklab, var(--accent) 10%, transparent); }
 
   .grid {
     display: grid;
@@ -98,8 +124,12 @@ const totalFeatures = features.length
   }
   .card:hover { background: var(--paper-2); color: var(--accent); }
   .card .num { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; min-width: 2ch; }
-  .card .label { flex: 1; font-size: 0.9375rem; }
+  .card-body { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+  .card .label { font-size: 0.9375rem; }
+  .card .desc { font-size: 0.75rem; color: var(--muted); }
+  .card:hover .desc { color: color-mix(in oklab, var(--accent) 70%, var(--muted)); }
   .card .status { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .card .status.ready { color: var(--accent); }
 
   .manifesto {
     padding-block: 1rem;

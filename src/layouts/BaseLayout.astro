@@ -1,5 +1,6 @@
 ---
 import '~/styles/global.css'
+import FamilySidebar from '@chirag127/astro-shell/components/FamilySidebar.astro'
 
 interface Props {
   title?: string
@@ -38,7 +39,25 @@ const canonical = new URL(Astro.url.pathname, 'https://audio.oriz.in').toString(
         <a href="https://account.oriz.in/sign-in?return=https://audio.oriz.in/">sign in</a>
       </nav>
     </header>
-    <main id="main"><slot /></main>
+    <div class="oriz-shell">
+      <FamilySidebar slug="oriz-echo-audio-tools-app" title="Audio Tools">
+        <a slot="tools" href="/tools/bitrate/">Bitrate change</a>
+        <a slot="tools" href="/tools/bpm/">BPM detector</a>
+        <a slot="tools" href="/tools/concat/">Concatenate</a>
+        <a slot="tools" href="/tools/convert/">Format convert</a>
+        <a slot="tools" href="/tools/extract/">Extract audio</a>
+        <a slot="tools" href="/tools/fade/">Fade in/out</a>
+        <a slot="tools" href="/tools/metronome/">Metronome</a>
+        <a slot="tools" href="/tools/normalize/">Normalize</a>
+        <a slot="tools" href="/tools/pitch/">Pitch shift</a>
+        <a slot="tools" href="/tools/reverse/">Reverse</a>
+        <a slot="tools" href="/tools/speed/">Speed change</a>
+        <a slot="tools" href="/tools/trim/">Trim</a>
+        <a slot="tools" href="/tools/tuner/">Tuner</a>
+        <a slot="tools" href="/tools/waveform/">Waveform</a>
+      </FamilySidebar>
+      <main id="main" class="oriz-main"><slot /></main>
+    </div>
     <footer class="site">
       <span>Oriz Echo · part of the <a href="https://oriz.in">oriz</a> family · runs in your browser</span>
       <span>

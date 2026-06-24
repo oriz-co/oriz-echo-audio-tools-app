@@ -1,0 +1,205 @@
+---
+import BaseLayout from '~/layouts/BaseLayout.astro'
+---
+<BaseLayout title="Chromatic Tuner — Oriz Echo" description="Microphone-based chromatic tuner. Shows nearest note and cents deviation. Runs in your browser.">
+  <article class="tool">
+    <p class="back mono"><a href="/">← all tools</a></p>
+    <h1 class="h1">Chromatic Tuner</h1>
+    <p class="status mono ready">ready · Web Audio API</p>
+
+    <div class="tuner-panel">
+      <p class="note-display mono" id="note-name">--</p>
+      <p class="cents-display mono" id="cents">±0 cents</p>
+      <div class="cents-bar-wrap" aria-label="Tuning bar">
+        <div class="cents-bar-center"></div>
+        <div class="cents-needle" id="needle"></div>
+      </div>
+      <p class="freq-display mono" id="freq-display">-- Hz</p>
+    </div>
+
+    <div class="controls">
+      <button id="start-btn" class="btn-primary">Start tuner</button>
+      <button id="stop-btn" class="btn-secondary hidden">Stop</button>
+    </div>
+    <p id="status-msg" class="status-msg mono"></p>
+  </article>
+</BaseLayout>
+
+<style>
+  .tool { padding-block: 0 2rem; }
+  .back { font-size: 12px; margin: 0 0 2rem; }
+  .back a { color: var(--muted); text-decoration: none; }
+  .back a:hover { color: var(--ink); }
+  .h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.75rem, 4vw, 2.5rem); margin: 0 0 0.5rem; line-height: 1.1; }
+  .status { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 2rem; }
+  .status.ready { color: var(--accent); }
+
+  .tuner-panel {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    max-width: 400px;
+    margin: 0 auto 1.5rem;
+  }
+  .note-display { font-size: clamp(4rem, 15vw, 6rem); color: var(--accent); margin: 0; line-height: 1; letter-spacing: -0.02em; }
+  .cents-display { font-size: 1rem; color: var(--muted); margin: 0.5rem 0 1rem; }
+
+  .cents-bar-wrap {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: var(--rule);
+    border-radius: 4px;
+    margin: 0 auto 1rem;
+  }
+  .cents-bar-center {
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    width: 2px;
+    height: 16px;
+    background: var(--muted);
+    transform: translateX(-50%);
+    border-radius: 1px;
+  }
+  .cents-needle {
+    position: absolute;
+    top: -4px;
+    width: 4px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: left 80ms ease-out;
+  }
+  .freq-display { font-size: 0.875rem; color: var(--muted); margin: 0; }
+
+  .controls { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; }
+  .btn-primary {
+    padding: 0.5rem 1.5rem;
+    background: var(--accent);
+    color: var(--paper);
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-display);
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    padding: 0.5rem 1.5rem;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-display);
+  }
+  .hidden { display: none; }
+  .status-msg { font-size: 12px; color: var(--muted); margin: 1rem 0 0; min-height: 1.4em; text-align: center; font-family: var(--font-mono); }
+</style>
+
+<script>
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+  const startBtn = document.getElementById('start-btn') as HTMLButtonElement
+  const stopBtn = document.getElementById('stop-btn') as HTMLButtonElement
+  const noteEl = document.getElementById('note-name') as HTMLParagraphElement
+  const centsEl = document.getElementById('cents') as HTMLParagraphElement
+  const freqEl = document.getElementById('freq-display') as HTMLParagraphElement
+  const needle = document.getElementById('needle') as HTMLDivElement
+  const statusEl = document.getElementById('status-msg') as HTMLParagraphElement
+
+  let audioCtx: AudioContext | null = null
+  let analyser: AnalyserNode | null = null
+  let stream: MediaStream | null = null
+  let rafId: number | null = null
+  let buf: Float32Array | null = null
+
+  function freqToNote(freq: number): { note: string; octave: number; cents: number } {
+    const midi = 12 * Math.log2(freq / 440) + 69
+    const rounded = Math.round(midi)
+    const cents = Math.round((midi - rounded) * 100)
+    return { note: NOTE_NAMES[rounded % 12], octave: Math.floor(rounded / 12) - 1, cents }
+  }
+
+  // Autocorrelation-based pitch detection
+  function detectPitch(buf: Float32Array, sampleRate: number): number {
+    const SIZE = buf.length
+    const rms = Math.sqrt(buf.reduce((a, v) => a + v * v, 0) / SIZE)
+    if (rms < 0.01) return -1
+
+    let r1 = 0, r2 = SIZE - 1
+    for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < 0.2) { r1 = i; break } }
+    for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < 0.2) { r2 = SIZE - i; break } }
+    const trimmed = buf.slice(r1, r2)
+    const c = new Float32Array(trimmed.length)
+    for (let i = 0; i < trimmed.length; i++) {
+      for (let j = 0; j < trimmed.length - i; j++) c[i] += trimmed[j] * trimmed[j + i]
+    }
+    let d = 0
+    while (c[d] > c[d + 1]) d++
+    let maxVal = -1, maxPos = -1
+    for (let i = d; i < trimmed.length; i++) {
+      if (c[i] > maxVal) { maxVal = c[i]; maxPos = i }
+    }
+    if (maxPos < 0) return -1
+    let T0 = maxPos
+    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1]
+    if (x1 !== undefined && x3 !== undefined) T0 = T0 - (x3 - x1) / (2 * (2 * x2 - x1 - x3))
+    return sampleRate / T0
+  }
+
+  function loop() {
+    if (!analyser || !buf) return
+    analyser.getFloatTimeDomainData(buf)
+    const freq = detectPitch(buf, audioCtx!.sampleRate)
+    if (freq > 50 && freq < 5000) {
+      const { note, octave, cents } = freqToNote(freq)
+      noteEl.textContent = `${note}${octave}`
+      freqEl.textContent = `${freq.toFixed(1)} Hz`
+      centsEl.textContent = `${cents >= 0 ? '+' : ''}${cents} cents`
+      // Map cents (-50..+50) → needle left (10%..90%)
+      const pct = 50 + (cents / 50) * 40
+      needle.style.left = `${Math.max(5, Math.min(95, pct))}%`
+    }
+    rafId = requestAnimationFrame(loop)
+  }
+
+  startBtn.addEventListener('click', async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      audioCtx = new AudioContext()
+      analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 2048
+      buf = new Float32Array(analyser.fftSize)
+      const source = audioCtx.createMediaStreamSource(stream)
+      source.connect(analyser)
+      startBtn.classList.add('hidden')
+      stopBtn.classList.remove('hidden')
+      statusEl.textContent = 'Listening…'
+      loop()
+    } catch {
+      statusEl.textContent = 'Microphone access denied.'
+    }
+  })
+
+  stopBtn.addEventListener('click', () => {
+    if (rafId) cancelAnimationFrame(rafId)
+    stream?.getTracks().forEach(t => t.stop())
+    audioCtx?.close()
+    audioCtx = null; analyser = null; stream = null; rafId = null
+    startBtn.classList.remove('hidden')
+    stopBtn.classList.add('hidden')
+    noteEl.textContent = '--'
+    centsEl.textContent = '±0 cents'
+    freqEl.textContent = '-- Hz'
+    needle.style.left = '50%'
+    statusEl.textContent = 'Stopped.'
+  })
+</script>
